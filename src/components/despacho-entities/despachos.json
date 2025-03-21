@@ -1,0 +1,41 @@
+{
+  "collectionName": "components_despacho_entities_despachos",
+  "info": {
+    "displayName": "Despachos",
+    "icon": "apps",
+    "description": ""
+  },
+  "options": {},
+  "attributes": {
+    "IDDespacho": {
+      "type": "string"
+    },
+    "CodigoDespacho": {
+      "type": "string"
+    },
+    "Carrier": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::carrier.carrier"
+    },
+    "Link": {
+      "type": "string"
+    },
+    "Comentarios": {
+      "type": "blocks"
+    },
+    "CantidadEnvios": {
+      "type": "biginteger"
+    },
+    "envios": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::envio.envio"
+    },
+    "estado_despacho": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::estado-despacho.estado-despacho"
+    }
+  }
+}

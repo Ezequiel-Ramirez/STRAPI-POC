@@ -1,0 +1,20 @@
+{
+  "kind": "singleType",
+  "collectionName": "despacho_lists",
+  "info": {
+    "singularName": "despacho-list",
+    "pluralName": "despacho-lists",
+    "displayName": "DespachoList"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Despacho": {
+      "type": "component",
+      "repeatable": true,
+      "component": "despacho-entities.despachos"
+    }
+  }
+}

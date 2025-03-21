@@ -1,0 +1,43 @@
+{
+  "kind": "collectionType",
+  "collectionName": "envios",
+  "info": {
+    "singularName": "envio",
+    "pluralName": "envios",
+    "displayName": "Envio",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "IdEnvio": {
+      "type": "string"
+    },
+    "Pedido": {
+      "type": "string"
+    },
+    "CRMID": {
+      "type": "string"
+    },
+    "Estado": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::estado.estado"
+    },
+    "tracking_number": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::tracking-number.tracking-number"
+    },
+    "Carrier": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::carrier.carrier"
+    },
+    "UltimoEstado": {
+      "type": "datetime"
+    }
+  }
+}

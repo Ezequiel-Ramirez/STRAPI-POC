@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "carriers",
+  "info": {
+    "singularName": "carrier",
+    "pluralName": "carriers",
+    "displayName": "Carrier",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "FormatoDespacho": {
+      "type": "string"
+    },
+    "CamposIntegracion": {
+      "type": "string"
+    },
+    "Negocio": {
+      "type": "string"
+    },
+    "IDCarrier": {
+      "type": "string"
+    }
+  }
+}

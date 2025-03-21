@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "estado_despachos",
+  "info": {
+    "singularName": "estado-despacho",
+    "pluralName": "estado-despachos",
+    "displayName": "EstadoDespacho"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "IDEstado": {
+      "type": "string"
+    },
+    "Estado": {
+      "type": "string"
+    },
+    "Descripcion": {
+      "type": "blocks"
+    }
+  }
+}

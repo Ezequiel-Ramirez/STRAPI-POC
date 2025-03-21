@@ -1,0 +1,30 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tracking_numbers",
+  "info": {
+    "singularName": "tracking-number",
+    "pluralName": "tracking-numbers",
+    "displayName": "TrackingNumber"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "IDTracking": {
+      "type": "string"
+    },
+    "TrackingNumber": {
+      "type": "biginteger"
+    },
+    "Estado": {
+      "type": "string"
+    },
+    "SubEstado": {
+      "type": "string"
+    },
+    "Fecha": {
+      "type": "date"
+    }
+  }
+}
