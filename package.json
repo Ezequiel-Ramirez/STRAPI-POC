@@ -10,12 +10,14 @@
     "strapi": "strapi",
     "deploy": "strapi deploy"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/react-router-dom": "^5.3.3"
+  },
   "dependencies": {
-    "@strapi/strapi": "4.25.19",
-    "@strapi/plugin-users-permissions": "4.25.19",
-    "@strapi/plugin-i18n": "4.25.19",
     "@strapi/plugin-cloud": "4.25.19",
+    "@strapi/plugin-i18n": "4.25.19",
+    "@strapi/plugin-users-permissions": "4.25.19",
+    "@strapi/strapi": "4.25.19",
     "better-sqlite3": "8.6.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
