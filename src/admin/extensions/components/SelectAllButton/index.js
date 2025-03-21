@@ -1,6 +1,6 @@
 /** @jsx React.createElement */
 import React, { useState } from "react";
-import { Button } from "@strapi/design-system";
+import { Button, Typography } from "@strapi/design-system";
 import { Boolean, PaperPlane } from "@strapi/icons";
 import { useLocation } from "react-router-dom";
 import { useNotification } from '@strapi/helper-plugin';
@@ -12,6 +12,7 @@ const SelectAllButton = () => {
   const isEnvioView = /\/content-manager\/collection-types\/api::envio\.envio/.test(location.pathname);
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [areAllSelected, setAreAllSelected] = useState(false);
+  const [totalEntries, setTotalEntries] = useState(0);
 
   if (!isEnvioView) {
     return null;
@@ -26,7 +27,7 @@ const SelectAllButton = () => {
     });
   };
 
-  const handleSelectAll = async () => {
+  const handleToggleSelectAll = async () => {
     try {
       if (areAllSelected) {
         // Si ya están seleccionadas, deseleccionar todas
@@ -43,6 +44,7 @@ const SelectAllButton = () => {
       // Simular la selección en el Content Manager
       simulateSelection(true);
       setAreAllSelected(true);
+      setTotalEntries(allEntries.length);
 
       toggleNotification({
         type: 'success',
@@ -90,13 +92,13 @@ const SelectAllButton = () => {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '10px', marginLeft: '10px' }}>
+    <div style={{ display: 'flex', gap: '10px', marginLeft: '10px', alignItems: 'center' }}>
       <Button
-        variant="secondary"
+        variant={areAllSelected ? 'primary' : 'secondary'}
         startIcon={<Boolean />}
-        onClick={handleSelectAll}
+        onClick={handleToggleSelectAll}
       >
-        Seleccionar Todas
+        {areAllSelected ? 'Deseleccionar Todas' : 'Seleccionar Todas'}
       </Button>
       <Button
         variant={selectedEntries.length > 0 ? 'primary' : 'secondary'}
@@ -106,9 +108,13 @@ const SelectAllButton = () => {
       >
         Enviar a Despacho
       </Button>
+      {/* Contador de selección */}
+      <Typography variant="pi" style={{ marginLeft: '10px' }}>
+        {selectedEntries.length} de {totalEntries} seleccionados
+      </Typography>
     </div>
   );
-
 };
+
 
 export default SelectAllButton;
