@@ -110,6 +110,11 @@ const SelectAllButton = () => {
         params.append('pagination[page]', String(pagination.page));
         params.append('pagination[pageSize]', String(pagination.pageSize));
         
+        // Añadir parámetros de populate para cargar las relaciones
+        params.append('populate[Estado][populate]', '*');
+        params.append('populate[tracking_number][populate]', '*');
+        params.append('populate[Carrier][populate]', '*');
+        
         console.log('URL de consulta:', `/api/envios?${params.toString()}`);
         
         // Hacer una llamada a la API para obtener todas las entradas con los filtros aplicados
@@ -171,6 +176,10 @@ const SelectAllButton = () => {
 
   return (
     <div style={{ display: 'flex', gap: '10px', marginLeft: '10px', alignItems: 'center' }}>
+     {/* Contador de selección */}
+     <Typography variant="pi" style={{ marginLeft: '10px' }}>
+        {selectedEntries.length} de {totalEntries} seleccionados
+      </Typography>
       <Button
         variant={areAllSelected ? 'primary' : 'secondary'}
         startIcon={<Boolean />}
@@ -186,10 +195,6 @@ const SelectAllButton = () => {
       >
         Enviar a Despacho
       </Button>
-      {/* Contador de selección */}
-      <Typography variant="pi" style={{ marginLeft: '10px' }}>
-        {selectedEntries.length} de {totalEntries} seleccionados
-      </Typography>
     </div>
   );
 };
