@@ -1,6 +1,17 @@
 /** @jsx React.createElement */
-import React, { useState } from "react";
-import { Button, Typography } from "@strapi/design-system";
+import React, { useState, useEffect } from "react";
+import { 
+  Button, 
+  Typography, 
+  ModalLayout, 
+  ModalBody, 
+  ModalHeader, 
+  ModalFooter,
+  RadioGroup,
+  Radio,
+  Loader,
+  Flex
+} from "@strapi/design-system";
 import { Boolean, PaperPlane } from "@strapi/icons";
 import { useLocation } from "react-router-dom";
 import { useNotification, useQueryParams } from '@strapi/helper-plugin';
@@ -17,6 +28,12 @@ const SelectAllButton = () => {
   const [areAllSelected, setAreAllSelected] = useState(false);
   const [totalEntries, setTotalEntries] = useState(0);
   const cmEditViewDataManager = useCMEditViewDataManager();
+  
+  // Estado para el modal y selección de despacho
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [despachoList, setDespachoList] = useState([]);
+  const [selectedDespacho, setSelectedDespacho] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isEnvioView) {
     return null;
@@ -53,7 +70,6 @@ const SelectAllButton = () => {
           try {
             // Intentar analizar como JSON si es una cadena
             filters = typeof filtersStr === 'string' ? JSON.parse(filtersStr) : filtersStr;
-            console.log('Filtros aplicados:', filters);
           } catch (e) {
             console.error('Error al analizar filtros:', e);
             filters = undefined;
@@ -115,13 +131,9 @@ const SelectAllButton = () => {
         params.append('populate[tracking_number][populate]', '*');
         params.append('populate[Carrier][populate]', '*');
         
-        console.log('URL de consulta:', `/api/envios?${params.toString()}`);
-        
         // Hacer una llamada a la API para obtener todas las entradas con los filtros aplicados
         const response = await axios.get(`/api/envios?${params.toString()}`);
-        console.log('response', response);
         const allEntries = response.data.data || [];
-        console.log('allEntries', allEntries);
         // Actualizar el estado local con los IDs seleccionados
         setSelectedEntries(allEntries);
         // Simular la selección en el Content Manager
@@ -143,9 +155,28 @@ const SelectAllButton = () => {
     }
   };
 
+  // Función para cargar la lista de despachos
+  const loadDespachoList = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.get('/api/despacho-list?populate=*');
+      
+      // Extraer la lista de despachos del objeto response.data.data.attributes.Despacho
+      const despachos = response.data?.data?.attributes?.Despacho || [];
+      setDespachoList(despachos);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error al cargar la lista de despachos:', error);
+      toggleNotification({
+        type: 'warning',
+        message: 'No se pudo cargar la lista de despachos',
+      });
+      setIsLoading(false);
+    }
+  };
   
-  
-  const handleEnviarADespacho = async () => {
+  // Función para abrir el modal y cargar la lista de despachos
+  const openDespachoModal = async () => {
     if (selectedEntries.length === 0) {
       toggleNotification({
         type: 'warning',
@@ -153,25 +184,132 @@ const SelectAllButton = () => {
       });
       return;
     }
-
+    
+    // Resetear la selección al abrir el modal
+    setSelectedDespacho(null);
+    setIsModalVisible(true);
+    await loadDespachoList();
+  };
+  
+  // Manejar selección de despacho mediante checkbox
+  const handleSelectDespacho = (despachoId) => {
+    setSelectedDespacho(despachoId);
+  };
+  
+  const handleEnviarADespacho = async () => {
+    if (!selectedDespacho) {
+      toggleNotification({
+        type: 'warning',
+        message: 'Debe seleccionar un despacho.',
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
     try {
-      // Enviar cada entrada seleccionada a la API de despacho
+      // Buscar el despacho seleccionado en la lista
+      const despachoSeleccionado = despachoList.find(d => d.CodigoDespacho === selectedDespacho);
+      
+      if (!despachoSeleccionado) {
+        throw new Error('No se encontró el despacho seleccionado');
+      }
+      
+      
+      // Enviar cada entrada seleccionada a la API de despacho con el despacho seleccionado
       for (const entry of selectedEntries) {
-        const response = await axios.post('/api/dispatches', { data: entry }); 
-        console.log('response', response);
+        const response = await axios.post('/api/dispatches', { 
+          data: {
+            envio: entry.id,
+            despacho: {
+              id: despachoSeleccionado.id,
+              IDDespacho: despachoSeleccionado.IDDespacho,
+              CodigoDespacho: despachoSeleccionado.CodigoDespacho
+            }
+          }
+        }); 
       }
 
-        toggleNotification({
+      toggleNotification({
         type: 'success',
-        message: 'Entradas enviadas a despacho correctamente.',
+        message: `${selectedEntries.length} entradas enviadas a despacho ${despachoSeleccionado.IDDespacho} correctamente.`,
       });
+      
+      // Cerrar el modal y limpiar la selección
+      setIsModalVisible(false);
+      setSelectedDespacho(null);
     } catch (error) {
       console.error('Error al enviar a despacho:', error);
       toggleNotification({
         type: 'warning',
         message: 'Hubo un error al enviar las entradas a despacho.',
       });
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  
+  // Modal de selección de despacho
+  const renderModal = () => {
+    if (!isModalVisible) return null;
+    
+    return (
+      <ModalLayout onClose={() => setIsModalVisible(false)} labelledBy="title">
+        <ModalHeader>
+          <Typography fontWeight="bold" textColor="neutral800" as="h2" id="title">
+            Seleccionar Despacho
+          </Typography>
+        </ModalHeader>
+        <ModalBody>
+          {isLoading ? (
+            <Flex justifyContent="center" padding={4}>
+              <Loader>Cargando despachos...</Loader>
+            </Flex>
+          ) : despachoList.length > 0 ? (
+            <div>
+              <Typography variant="beta" paddingBottom={4}>Seleccione un despacho:</Typography>
+              
+              {despachoList.map((despacho) => (
+                <Flex 
+                  key={despacho.CodigoDespacho} 
+                  padding={3} 
+                  background={selectedDespacho === despacho.CodigoDespacho ? "primary100" : "neutral0"}
+                  hasRadius 
+                  style={{ 
+                    cursor: 'pointer',
+                    marginBottom: '8px',
+                    border: `1px solid ${selectedDespacho === despacho.CodigoDespacho ? "#4945ff" : "#dcdce4"}`
+                  }} 
+                  onClick={() => handleSelectDespacho(despacho.CodigoDespacho)}
+                >
+                  <Typography>{`Despacho #${despacho.CodigoDespacho} - ID: ${despacho.IDDespacho}`}</Typography>
+                </Flex>
+              ))}
+            </div>
+          ) : (
+            <Typography>No hay despachos disponibles.</Typography>
+          )}
+        </ModalBody>
+        <ModalFooter 
+          startActions={
+            <Button onClick={() => setIsModalVisible(false)} variant="tertiary">
+              Cancelar
+            </Button>
+          }
+          endActions={
+            <Button 
+              onClick={handleEnviarADespacho} 
+              disabled={!selectedDespacho || isLoading}
+              loading={isLoading}
+              startIcon={<PaperPlane />}
+            >
+              Enviar a Despacho
+            </Button>
+          }
+        />
+      </ModalLayout>
+    );
   };
 
   return (
@@ -190,14 +328,14 @@ const SelectAllButton = () => {
       <Button
         variant={selectedEntries.length > 0 ? 'primary' : 'secondary'}
         startIcon={<PaperPlane />}
-        onClick={handleEnviarADespacho}
+        onClick={openDespachoModal}
         disabled={selectedEntries.length === 0}
       >
         Enviar a Despacho
       </Button>
+      {renderModal()}
     </div>
   );
 };
-
 
 export default SelectAllButton;
