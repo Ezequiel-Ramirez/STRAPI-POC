@@ -27,7 +27,7 @@ const SelectAllButton = () => {
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [areAllSelected, setAreAllSelected] = useState(false);
   const [totalEntries, setTotalEntries] = useState(0);
-  const cmEditViewDataManager = useCMEditViewDataManager();
+  const { modifiedData, isCreatingEntry } = useCMEditViewDataManager();
   
   // Estado para el modal y selección de despacho
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -38,6 +38,16 @@ const SelectAllButton = () => {
   if (!isEnvioView) {
     return null;
   }
+  console.info('ID del envío seleccionado:', modifiedData.id);
+      console.info('modifiedData', modifiedData);
+  // Si no es una nueva entrada, `modifiedData.id` tendrá el ID del envío seleccionado
+  useEffect(() => {
+    if (!isCreatingEntry && modifiedData.id) {
+      console.log('ID del envío seleccionado:', modifiedData.id);
+      console.log('modifiedData', modifiedData);
+      // Aquí puedes llamar a tu función y pasarle el ID
+    }
+  }, [modifiedData.id, isCreatingEntry]);
   
   const simulateSelection = (checked) => {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -51,106 +61,47 @@ const SelectAllButton = () => {
   const handleToggleSelectAll = async () => {
     try {
       if (areAllSelected) {
-        // Si ya están seleccionadas, deseleccionar todas
         setSelectedEntries([]);
-        simulateSelection(false); // Desmarcar todos los checkboxes
+        simulateSelection(false);
         setAreAllSelected(false);
-      } else {
-        // Extraer los filtros actuales del query
-        // @ts-ignore - Ignoramos el chequeo de tipos para acceder a propiedades dinámicas
-        const filtersStr = query && query['filters'];
-        // @ts-ignore
-        const sortValue = query && query['sort'];
-        // @ts-ignore
-        const pageValue = query && query['page'];
-        
-        // Determinar si el filtro ya es un objeto o un string JSON
-        let filters;
-        if (filtersStr) {
-          try {
-            // Intentar analizar como JSON si es una cadena
-            filters = typeof filtersStr === 'string' ? JSON.parse(filtersStr) : filtersStr;
-          } catch (e) {
-            console.error('Error al analizar filtros:', e);
-            filters = undefined;
-          }
-        }
-        
-        const sort = sortValue || undefined;
-        const pagination = {
-          page: pageValue || 1,
-          pageSize: 100 // Usar un valor grande para obtener más resultados
-        };
-        
-        // Construir los parámetros de consulta
-        const params = new URLSearchParams();
-        
-        if (filters) {
-          try {
-            // Procesar los filtros de forma dinámica para cualquier campo
-            // En lugar de usar un objeto JSON completo, convertimos cada filtro a formato query param
-            function buildFilterParams(filterObject, prefix = 'filters') {
-              for (const key in filterObject) {
-                const value = filterObject[key];
-                if (value !== null && typeof value === 'object') {
-                  // Si es un array como $and o $or
-                  if (Array.isArray(value)) {
-                    value.forEach((item, index) => {
-                      buildFilterParams(item, `${prefix}[${key}][${index}]`);
-                    });
-                  } else {
-                    // Si es un objeto anidado (otro filtro o operador)
-                    buildFilterParams(value, `${prefix}[${key}]`);
-                  }
-                } else {
-                  // Si es un valor simple
-                  params.append(`${prefix}[${key}]`, String(value));
-                }
-              }
-            }
-            
-            // Aplicar la función recursiva para construir los parámetros
-            buildFilterParams(filters);
-            
-          } catch (e) {
-            console.error('Error al procesar filtros:', e);
-            // Si hay un error, no enviamos filtros
-          }
-        }
-
-        if (sort) {
-          params.append('sort', sort);
-        }
-        
-        // Usar solo un tipo de paginación (basada en 'page')
-        params.append('pagination[page]', String(pagination.page));
-        params.append('pagination[pageSize]', String(pagination.pageSize));
-        
-        // Añadir parámetros de populate para cargar las relaciones
-        params.append('populate[Estado][populate]', '*');
-        params.append('populate[tracking_number][populate]', '*');
-        params.append('populate[Carrier][populate]', '*');
-        
-        // Hacer una llamada a la API para obtener todas las entradas con los filtros aplicados
-        const response = await axios.get(`/api/envios?${params.toString()}`);
-        const allEntries = response.data.data || [];
-        // Actualizar el estado local con los IDs seleccionados
-        setSelectedEntries(allEntries);
-        // Simular la selección en el Content Manager
-        simulateSelection(true);
-        setAreAllSelected(true);
-        setTotalEntries(allEntries.length);
-
-        toggleNotification({
-          type: 'success',
-          message: `${allEntries.length} entradas seleccionadas según los filtros actuales`,
-        });
+        return;
       }
+  
+      const currentUrl = new URL(window.location.href);
+      const params = new URLSearchParams(currentUrl.search);
+      
+      // Parámetros esenciales
+      const essentialParams = new URLSearchParams();
+      ['filters', 'sort', 'page', 'pageSize'].forEach(key => {
+        if (params.get(key)) essentialParams.set(key, params.get(key));
+      });
+      
+      essentialParams.set('pageSize', '100');
+  
+      const response = await axios.get(`/api/envios/flat?${essentialParams.toString()}`, {
+        headers: {
+          'Cache-Control': 'no-cache' // Evita problemas de caché
+        }
+      });
+  
+      if (!response.data) throw new Error('Datos vacíos en la respuesta');
+      
+      setSelectedEntries(response.data);
+      simulateSelection(true);
+      setAreAllSelected(true);
+      setTotalEntries(response.data.length);
+      console.info('response.data', response.data)
+
+      toggleNotification({
+        type: 'success',
+        message: `${response.data.length} entradas seleccionadas`,
+      });
+  
     } catch (error) {
-      console.error('Error al obtener las entradas:', error);
+      console.error('Error:', error.response?.data || error.message);
       toggleNotification({
         type: 'warning',
-        message: 'Error al obtener las entradas',
+        message: error.response?.data?.error?.message || 'Error al procesar la solicitud',
       });
     }
   };
@@ -215,7 +166,7 @@ const SelectAllButton = () => {
         throw new Error('No se encontró el despacho seleccionado');
       }
       
-      
+      console.log('selectedEntries', selectedEntries);
       // Enviar cada entrada seleccionada a la API de despacho con el despacho seleccionado
       for (const entry of selectedEntries) {
         const response = await axios.post('/api/dispatches', { 
