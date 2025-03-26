@@ -7,8 +7,6 @@ import {
   ModalBody, 
   ModalHeader, 
   ModalFooter,
-  RadioGroup,
-  Radio,
   Loader,
   Flex
 } from "@strapi/design-system";
@@ -39,15 +37,8 @@ const SelectAllButton = () => {
     return null;
   }
   console.info('ID del envío seleccionado:', modifiedData.id);
-      console.info('modifiedData', modifiedData);
-  // Si no es una nueva entrada, `modifiedData.id` tendrá el ID del envío seleccionado
-  useEffect(() => {
-    if (!isCreatingEntry && modifiedData.id) {
-      console.log('ID del envío seleccionado:', modifiedData.id);
-      console.log('modifiedData', modifiedData);
-      // Aquí puedes llamar a tu función y pasarle el ID
-    }
-  }, [modifiedData.id, isCreatingEntry]);
+  console.info('modifiedData', modifiedData);
+
   
   const simulateSelection = (checked) => {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -90,7 +81,6 @@ const SelectAllButton = () => {
       simulateSelection(true);
       setAreAllSelected(true);
       setTotalEntries(response.data.length);
-      console.info('response.data', response.data)
 
       toggleNotification({
         type: 'success',
@@ -110,10 +100,11 @@ const SelectAllButton = () => {
   const loadDespachoList = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/despacho-list?populate=*');
+      const response = await axios.get('/api/despacho-list/flat');
       
-      // Extraer la lista de despachos del objeto response.data.data.attributes.Despacho
-      const despachos = response.data?.data?.attributes?.Despacho || [];
+      const despachos = response.data.Despacho || [];
+      console.info('despachos', despachos)
+
       setDespachoList(despachos);
       setIsLoading(false);
     } catch (error) {
@@ -167,28 +158,32 @@ const SelectAllButton = () => {
       }
       
       console.log('selectedEntries', selectedEntries);
+      console.info('despachoSeleccionado', despachoSeleccionado)
+      
       // Enviar cada entrada seleccionada a la API de despacho con el despacho seleccionado
-      for (const entry of selectedEntries) {
-        const response = await axios.post('/api/dispatches', { 
-          data: {
-            envio: entry.id,
-            despacho: {
-              id: despachoSeleccionado.id,
-              IDDespacho: despachoSeleccionado.IDDespacho,
-              CodigoDespacho: despachoSeleccionado.CodigoDespacho
-            }
-          }
-        }); 
-      }
-
-      toggleNotification({
-        type: 'success',
-        message: `${selectedEntries.length} entradas enviadas a despacho ${despachoSeleccionado.IDDespacho} correctamente.`,
+      const envioIds = selectedEntries.map(entry => entry.id);
+      const response = await axios.post('/api/despacho-list/add-envios', {
+        envioIds,
+        CodigoDespacho: despachoSeleccionado.CodigoDespacho
       });
+      console.info('response', response)
+      
+      if (response.status === 200) {
+        toggleNotification({
+          type: 'success',
+          message: `${selectedEntries.length} entradas enviadas a despacho ${despachoSeleccionado.CodigoDespacho} correctamente.`,
+        });
+      } else {
+        toggleNotification({
+          type: 'warning',
+          message: 'Hubo un error al enviar las entradas a despacho.',
+        });
+      }
       
       // Cerrar el modal y limpiar la selección
       setIsModalVisible(false);
       setSelectedDespacho(null);
+      setSelectedEntries([]);
     } catch (error) {
       console.error('Error al enviar a despacho:', error);
       toggleNotification({
