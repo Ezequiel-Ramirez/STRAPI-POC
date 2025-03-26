@@ -112,6 +112,25 @@ module.exports = createCoreController('api::despacho-list.despacho-list', ({ str
                 }
             }
             
+            //Actualizar el estado del envío consultando api::estado.estado y asignarle el id de estado 5   
+            const estado = await strapi.entityService.findOne('api::estado.estado', 5);
+            console.info('estado enviado a despacho', estado)
+            
+            for (const envioId of newEnvioIds) {
+                try {
+                    const envioActualizado = await strapi.entityService.update('api::envio.envio', envioId, {
+                        data: {
+                            Estado: estado.id // Usar el ID del estado directamente para la relación
+                        }
+                    });
+                    console.info('envío actualizado', envioActualizado)
+                    console.log(`✓ Estado actualizado para el envío ${envioId} a: ${estado.EstadoEnvio || estado.id}`);
+                } catch (err) {
+                    console.error(`✗ Error al actualizar el estado del envío ${envioId}:`, err.message);
+                }
+            }
+                    
+            
             return {
                 success: true,
                 message: `${newEnvioIds.length} envíos asignados al despacho ${CodigoDespacho}`,
