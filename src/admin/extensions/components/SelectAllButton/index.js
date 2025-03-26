@@ -51,6 +51,7 @@ const SelectAllButton = () => {
 
   const handleToggleSelectAll = async () => {
     try {
+      // Si ya están seleccionados, deseleccionar todo
       if (areAllSelected) {
         setSelectedEntries([]);
         simulateSelection(false);
@@ -58,33 +59,43 @@ const SelectAllButton = () => {
         return;
       }
   
+      // Obtener y procesar parámetros de la URL actual
       const currentUrl = new URL(window.location.href);
       const params = new URLSearchParams(currentUrl.search);
-      
-      // Parámetros esenciales
       const essentialParams = new URLSearchParams();
-      ['filters', 'sort', 'page', 'pageSize'].forEach(key => {
+      
+      // Extraer y aplicar todos los filtros
+      for (const [key, value] of params.entries()) {
+        if (key.startsWith('filters')) {
+          essentialParams.set(key, value);
+        }
+      }
+      
+      // Añadir parámetros básicos de paginación y ordenamiento
+      ['filters', 'sort', 'page'].forEach(key => {
         if (params.get(key)) essentialParams.set(key, params.get(key));
       });
       
+      // Establecer tamaño de página grande para obtener más resultados
       essentialParams.set('pageSize', '100');
-  
+      
+      // Realizar la petición a la API
       const response = await axios.get(`/api/envios/flat?${essentialParams.toString()}`, {
-        headers: {
-          'Cache-Control': 'no-cache' // Evita problemas de caché
-        }
+        headers: { 'Cache-Control': 'no-cache' }
       });
   
       if (!response.data) throw new Error('Datos vacíos en la respuesta');
       
-      setSelectedEntries(response.data);
+      // Actualizar estado con los resultados
+      const entries = response.data;
+      setSelectedEntries(entries);
       simulateSelection(true);
       setAreAllSelected(true);
-      setTotalEntries(response.data.length);
+      setTotalEntries(entries.length);
 
       toggleNotification({
         type: 'success',
-        message: `${response.data.length} entradas seleccionadas`,
+        message: `${entries.length} entradas seleccionadas`,
       });
   
     } catch (error) {
@@ -171,12 +182,13 @@ const SelectAllButton = () => {
       if (response.status === 200) {
         toggleNotification({
           type: 'success',
-          message: `${selectedEntries.length} entradas enviadas a despacho ${despachoSeleccionado.CodigoDespacho} correctamente.`,
+          message: response.data.message
         });
       } else {
+        console.info('response', response)
         toggleNotification({
           type: 'warning',
-          message: 'Hubo un error al enviar las entradas a despacho.',
+          message: response.data.message
         });
       }
       
@@ -188,13 +200,13 @@ const SelectAllButton = () => {
       console.error('Error al enviar a despacho:', error);
       toggleNotification({
         type: 'warning',
-        message: 'Hubo un error al enviar las entradas a despacho.',
+        message: error.response?.data?.error?.message || 'Hubo un error al enviar las entradas a despacho.',
       });
     } finally {
       setIsLoading(false);
     }
   };
-
+  console.info('despachoList', despachoList)
   
   // Modal de selección de despacho
   const renderModal = () => {
