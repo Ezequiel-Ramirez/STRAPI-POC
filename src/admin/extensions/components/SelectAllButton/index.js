@@ -172,9 +172,8 @@ const SelectAllButton = () => {
       console.info('despachoSeleccionado', despachoSeleccionado)
       
       // Enviar cada entrada seleccionada a la API de despacho con el despacho seleccionado
-      const envioIds = selectedEntries.map(entry => entry.id);
       const response = await axios.post('/api/despacho-list/add-envios', {
-        envioIds,
+        selectedEntries: selectedEntries,
         CodigoDespacho: despachoSeleccionado.CodigoDespacho
       });
       console.info('response', response)
@@ -196,6 +195,7 @@ const SelectAllButton = () => {
       setIsModalVisible(false);
       setSelectedDespacho(null);
       setSelectedEntries([]);
+      setAreAllSelected(false);
     } catch (error) {
       console.error('Error al enviar a despacho:', error);
       toggleNotification({

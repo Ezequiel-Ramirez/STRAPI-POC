@@ -29,10 +29,12 @@ module.exports = createCoreController('api::despacho-list.despacho-list', ({ str
     },
     async addEnviosToDespacho(ctx) {
         try {
-            const { envioIds, CodigoDespacho } = ctx.request.body;
+            const { selectedEntries, CodigoDespacho } = ctx.request.body;
+            console.info('selectedEntries', selectedEntries)
+            console.info('CodigoDespacho', CodigoDespacho)
 
-            if (!envioIds || !CodigoDespacho) {
-                return ctx.badRequest('Se requieren envioIds y CodigoDespacho');
+            if (!selectedEntries || !CodigoDespacho) {
+                return ctx.badRequest('Se requieren selectedEntries y CodigoDespacho');
             }
 
             console.log(`🔍 Buscando despacho con CodigoDespacho: ${CodigoDespacho}`);
@@ -74,8 +76,15 @@ module.exports = createCoreController('api::despacho-list.despacho-list', ({ str
             
             console.log(`📊 Envíos actuales: ${currentEnvioIds.length > 0 ? currentEnvioIds.join(', ') : 'ninguno'}`);
             
-            // 4. Filtrar los nuevos IDs para evitar duplicados
-            const newEnvioIds = envioIds.filter(id => !currentEnvioIds.includes(id));
+            // 4. Filtrar nuevos envíos (excluyendo estado 5 y duplicados)
+        const validEntries = selectedEntries.filter(entry => {
+            // Verificar que el entry tenga id y que el estado no sea 5
+            return entry.id && entry.Estado?.id !== 5;
+        });
+
+        const newEnvioIds = validEntries
+            .map(entry => entry.id)
+            .filter(id => !currentEnvioIds.includes(id));
             
             if (newEnvioIds.length === 0) {
                 return ctx.conflict('Los envíos ya están asociados a este despacho');
