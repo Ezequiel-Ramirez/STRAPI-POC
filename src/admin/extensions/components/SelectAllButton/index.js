@@ -12,7 +12,7 @@ import {
 } from "@strapi/design-system";
 import { Boolean, PaperPlane } from "@strapi/icons";
 import { useLocation } from "react-router-dom";
-import { useNotification, useQueryParams } from '@strapi/helper-plugin';
+import { useNotification, useQueryParams, useFetchClient } from '@strapi/helper-plugin';
 import axios from 'axios';
 import { useCMEditViewDataManager } from '@strapi/helper-plugin';
 
@@ -21,6 +21,7 @@ const SelectAllButton = () => {
   const toggleNotification = useNotification();
   const location = useLocation();
   const [{ query }] = useQueryParams();
+  const fetchClient = useFetchClient();
   const isEnvioView = /\/content-manager\/collection-types\/api::envio\.envio/.test(location.pathname);
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [areAllSelected, setAreAllSelected] = useState(false);
@@ -80,7 +81,7 @@ const SelectAllButton = () => {
       essentialParams.set('pageSize', '100');
       
       // Realizar la petición a la API
-      const response = await axios.get(`/api/envios/flat?${essentialParams.toString()}`, {
+      const response = await fetchClient.get(`/api/envios/flat?${essentialParams.toString()}`, {
         headers: { 'Cache-Control': 'no-cache' }
       });
   
@@ -111,7 +112,7 @@ const SelectAllButton = () => {
   const loadDespachoList = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/despacho-list/flat');
+      const response = await fetchClient.get('/api/despacho-list/flat');
       
       const despachos = response.data.Despacho || [];
       console.info('despachos', despachos)
@@ -172,7 +173,7 @@ const SelectAllButton = () => {
       console.info('despachoSeleccionado', despachoSeleccionado)
       
       // Enviar cada entrada seleccionada a la API de despacho con el despacho seleccionado
-      const response = await axios.post('/api/despacho-list/add-envios', {
+      const response = await fetchClient.post('/api/despacho-list/add-envios', {
         selectedEntries: selectedEntries,
         CodigoDespacho: despachoSeleccionado.CodigoDespacho
       });
