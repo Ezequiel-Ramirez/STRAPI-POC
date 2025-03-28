@@ -26,7 +26,6 @@ const SelectAllButton = () => {
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [areAllSelected, setAreAllSelected] = useState(false);
   const [totalEntries, setTotalEntries] = useState(0);
-  const { modifiedData, isCreatingEntry } = useCMEditViewDataManager();
   
   // Estado para el modal y selección de despacho
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -37,8 +36,6 @@ const SelectAllButton = () => {
   if (!isEnvioView) {
     return null;
   }
-  console.info('ID del envío seleccionado:', modifiedData.id);
-  console.info('modifiedData', modifiedData);
 
   
   const simulateSelection = (checked) => {
