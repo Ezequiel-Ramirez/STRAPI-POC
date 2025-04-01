@@ -7,7 +7,7 @@ module.exports = {
             handler: 'despacho-list.getFlatList',
             config: {
                 auth: false,
-                policies: [] // Asegúrate de no tener políticas restrictivas
+                policies: [] // Asegurar de no tener políticas restrictivas
             }
         },
         {
@@ -16,7 +16,7 @@ module.exports = {
             handler: 'despacho-list.addEnviosToDespacho',
             config: {
                 auth: false,
-                policies: [] // Asegúrate de no tener políticas restrictivas
+                policies: [] // Asegurar de no tener políticas restrictivas
             }
         }
     ]

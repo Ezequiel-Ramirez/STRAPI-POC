@@ -7,7 +7,7 @@ module.exports = {
         handler: 'envio.getFlat',
         config: {
           auth: false,
-          policies: [] // Asegúrate de no tener políticas restrictivas
+          policies: [] // Asegurar de no tener políticas restrictivas
         }
       }
     ]
