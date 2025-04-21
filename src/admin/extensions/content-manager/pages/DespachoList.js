@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PdfExportButton from "../../components/PdfExportButton";
-import { useCMEditViewDataManager } from "@strapi/helper-plugin";
+import { useCMEditViewDataManager, useNotification } from "@strapi/helper-plugin";
 import { 
   Box,
   Typography,
@@ -8,20 +8,44 @@ import {
   SingleSelectOption,
   Flex,
   ModalLayout,
-  Button
+  Button,
+  MultiSelect,
+  MultiSelectOption
 } from "@strapi/design-system";
 import { Download } from '@strapi/icons';
 
 const DespachoList = () => {
   const { modifiedData } = useCMEditViewDataManager();
+  const toggleNotification = useNotification();
   const [selectedDespacho, setSelectedDespacho] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [envios, setEnvios] = useState([]);
+  const [selectedEnvios, setSelectedEnvios] = useState([]);
+  const [loadingEnvios, setLoadingEnvios] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  console.log('modifiedData', modifiedData);
+  useEffect(() => {
+    if (modalOpen) {
+      setLoadingEnvios(true);
+      fetch('/api/envios/flat')
+        .then(res => res.json())
+        .then(data => {
+          setEnvios(data);
+          setLoadingEnvios(false);
+        })
+        .catch(() => {
+          setEnvios([]);
+          setLoadingEnvios(false);
+          toggleNotification({ type: 'warning', message: 'No se pudo cargar la lista de envíos.' });
+        });
+    } else {
+      setEnvios([]);
+      setSelectedEnvios([]);
+    }
+  }, [modalOpen, toggleNotification]);
 
   const handleSelect = (value) => {
-    const despacho = modifiedData?.Despacho?.find(d => d.id === Number(value));  // Convertir a número si es necesario
-    console.log('despacho seleccionado:', despacho);
+    const despacho = modifiedData?.Despacho?.find(d => d.id === Number(value));
     setSelectedDespacho(despacho || null);
     if (despacho) setModalOpen(true);
   };
@@ -29,6 +53,39 @@ const DespachoList = () => {
   const handleCloseModal = () => {
     setModalOpen(false);
     setSelectedDespacho(null);
+    setSelectedEnvios([]);
+  };
+
+  const handleAddEnvios = async () => {
+    if (!selectedEnvios.length) {
+      toggleNotification({ type: 'warning', message: 'Debe seleccionar al menos un envío.' });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // Mapear los IDs seleccionados a los objetos completos de envíos
+      const selectedEntries = envios.filter(envio => selectedEnvios.includes(envio.id.toString()));
+
+      const response = await fetch('/api/despacho-list/add-envios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          selectedEntries,
+          CodigoDespacho: selectedDespacho.CodigoDespacho
+        })
+      });
+      const result = await response.json();
+      if (result.success) {
+        toggleNotification({ type: 'success', message: result.message || 'Envíos asociados correctamente.' });
+        handleCloseModal();
+      }
+      if (!result.success) {
+        toggleNotification({ type: 'warning', message: result.error.message || 'Error al asociar envío.' });
+      }
+    } catch (error) {
+      toggleNotification({ type: 'warning', message: error.message || 'Error al asociar envíos.' });
+    }
+    setSubmitting(false);
   };
 
   return (
@@ -45,7 +102,7 @@ const DespachoList = () => {
             <Flex gap={2} alignItems="center">
               <Download />
               <Typography>
-                {despacho.CodigoDespacho || despacho.id} - Descargar PDF
+                {despacho.CodigoDespacho || despacho.id} - Gestionar Despacho
               </Typography>
             </Flex>
           </SingleSelectOption>
@@ -65,7 +122,37 @@ const DespachoList = () => {
             <Box paddingTop={4}>
               <PdfExportButton entity={selectedDespacho} />
             </Box>
-            {/* Aquí puedes agregar más acciones en el futuro */}
+            <Box paddingTop={6}>
+              <Typography variant="omega" fontWeight="bold">
+                Asociar envíos a este despacho:
+              </Typography>
+              <Box paddingTop={2}>
+                <MultiSelect
+                  label="Seleccionar envíos"
+                  placeholder={loadingEnvios ? "Cargando envíos..." : "Seleccione envíos"}
+                  value={selectedEnvios}
+                  onChange={setSelectedEnvios}
+                  disabled={loadingEnvios}
+                >
+                  {envios.map(envio => (
+                    <MultiSelectOption key={envio.id} value={envio.id.toString()}>
+                      {envio.IdEnvio || envio.id} - Estado: {envio.Estado.EstadoEnvio || ''}
+                    </MultiSelectOption>
+                  ))}
+                </MultiSelect>
+              </Box>
+              <Box paddingTop={4}>
+                <Button
+                  variant="success"
+                  onClick={handleAddEnvios}
+                  disabled={submitting || loadingEnvios || !selectedEnvios.length}
+                  loading={submitting}
+                  fullWidth
+                >
+                  Asociar envíos
+                </Button>
+              </Box>
+            </Box>
             <Box paddingTop={4}>
               <Button variant="secondary" onClick={handleCloseModal} fullWidth>
                 Cerrar

@@ -87,7 +87,7 @@ module.exports = createCoreController('api::despacho-list.despacho-list', ({ str
             .filter(id => !currentEnvioIds.includes(id));
             
             if (newEnvioIds.length === 0) {
-                return ctx.conflict('Los envíos ya están asociados a este despacho');
+                return ctx.conflict('Los envíos ya están asociados a un despacho');
             }
             
             console.log(`🚀 Nuevos envíos a agregar: ${newEnvioIds.join(', ')}`);
