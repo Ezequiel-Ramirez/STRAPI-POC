@@ -24,6 +24,17 @@ const DespachoList = () => {
   const [loadingEnvios, setLoadingEnvios] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // NUEVO: Estado para filtros y envíos filtrados
+  const [filtros, setFiltros] = useState({
+    estadoEnvio: '',
+    estadoTracking: '',
+    carrierNegocio: '',
+    pedido: '',
+    crmid: '',
+    trackingNumber: '',
+  });
+  const [enviosFiltrados, setEnviosFiltrados] = useState([]);
+
   useEffect(() => {
     if (modalOpen) {
       setLoadingEnvios(true);
@@ -44,6 +55,11 @@ const DespachoList = () => {
     }
   }, [modalOpen, toggleNotification]);
 
+  // Actualizar enviosFiltrados cuando cambian los envios o se abre/cierra el modal
+  useEffect(() => {
+    setEnviosFiltrados(envios);
+  }, [envios]);
+
   const handleSelect = (value) => {
     const despacho = modifiedData?.Despacho?.find(d => d.id === Number(value));
     setSelectedDespacho(despacho || null);
@@ -53,6 +69,54 @@ const DespachoList = () => {
   const handleCloseModal = () => {
     setModalOpen(false);
     setSelectedDespacho(null);
+    setSelectedEnvios([]);
+    setFiltros({
+      estadoEnvio: '',
+      estadoTracking: '',
+      carrierNegocio: '',
+      pedido: '',
+      crmid: '',
+      trackingNumber: '',
+    });
+    setEnviosFiltrados(envios);
+  };
+
+  // Función para aplicar filtros
+  const handleFiltrarEnvios = () => {
+    let filtrados = envios;
+    if (filtros.estadoEnvio) {
+      filtrados = filtrados.filter(e => e.Estado?.EstadoEnvio === filtros.estadoEnvio);
+    }
+    if (filtros.estadoTracking) {
+      filtrados = filtrados.filter(e => e.tracking_number?.Estado === filtros.estadoTracking);
+    }
+    if (filtros.carrierNegocio) {
+      filtrados = filtrados.filter(e => e.Carrier?.Negocio === filtros.carrierNegocio);
+    }
+    if (filtros.pedido) {
+      filtrados = filtrados.filter(e => (e.Pedido || '').toLowerCase().includes(filtros.pedido.toLowerCase()));
+    }
+    if (filtros.crmid) {
+      filtrados = filtrados.filter(e => (e.CRMID || '').toLowerCase().includes(filtros.crmid.toLowerCase()));
+    }
+    if (filtros.trackingNumber) {
+      filtrados = filtrados.filter(e => (e.tracking_number?.TrackingNumber || '').toLowerCase().includes(filtros.trackingNumber.toLowerCase()));
+    }
+    setEnviosFiltrados(filtrados);
+    setSelectedEnvios([]); // Limpiar selección al filtrar
+  };
+
+  // NUEVO: Función para borrar filtros
+  const handleBorrarFiltros = () => {
+    setFiltros({
+      estadoEnvio: '',
+      estadoTracking: '',
+      carrierNegocio: '',
+      pedido: '',
+      crmid: '',
+      trackingNumber: '',
+    });
+    setEnviosFiltrados(envios);
     setSelectedEnvios([]);
   };
 
@@ -87,6 +151,14 @@ const DespachoList = () => {
     }
     setSubmitting(false);
   };
+
+  // Obtener opciones únicas para los selects de filtro
+  const opcionesEstadoEnvio = Array.from(new Set(envios.map(e => e.Estado?.EstadoEnvio).filter(Boolean)));
+  const opcionesEstadoTracking = Array.from(new Set(envios.map(e => e.tracking_number?.Estado).filter(Boolean)));
+  const opcionesCarrierNegocio = Array.from(new Set(envios.map(e => e.Carrier?.Negocio).filter(Boolean)));
+
+  // Saber si hay algún filtro aplicado
+  const hayFiltrosAplicados = Object.values(filtros).some(v => v && v !== '');
 
   return (
     <Box padding={4}>
@@ -127,16 +199,101 @@ const DespachoList = () => {
                 Asociar envíos a este despacho:
               </Typography>
               <Box paddingTop={2}>
+                {/* Filtros de envíos */}
+                <Box paddingBottom={4} background="neutral100" hasRadius shadow="tableShadow" padding={4}>
+                  <Flex gap={4} wrap="wrap">
+                    <SingleSelect
+                      label="Estado del Envío"
+                      placeholder="Todos"
+                      value={filtros.estadoEnvio}
+                      onChange={v => setFiltros(f => ({ ...f, estadoEnvio: v }))}
+                      style={{ minWidth: 180 }}
+                    >
+                      <SingleSelectOption value="">Todos</SingleSelectOption>
+                      {opcionesEstadoEnvio.map(op => (
+                        <SingleSelectOption key={op} value={op}>{op}</SingleSelectOption>
+                      ))}
+                    </SingleSelect>
+                    <SingleSelect
+                      label="Estado Tracking"
+                      placeholder="Todos"
+                      value={filtros.estadoTracking}
+                      onChange={v => setFiltros(f => ({ ...f, estadoTracking: v }))}
+                      style={{ minWidth: 180 }}
+                    >
+                      <SingleSelectOption value="">Todos</SingleSelectOption>
+                      {opcionesEstadoTracking.map(op => (
+                        <SingleSelectOption key={op} value={op}>{op}</SingleSelectOption>
+                      ))}
+                    </SingleSelect>
+                    <SingleSelect
+                      label="Negocio Carrier"
+                      placeholder="Todos"
+                      value={filtros.carrierNegocio}
+                      onChange={v => setFiltros(f => ({ ...f, carrierNegocio: v }))}
+                      style={{ minWidth: 180 }}
+                    >
+                      <SingleSelectOption value="">Todos</SingleSelectOption>
+                      {opcionesCarrierNegocio.map(op => (
+                        <SingleSelectOption key={op} value={op}>{op}</SingleSelectOption>
+                      ))}
+                    </SingleSelect>
+                    <input
+                      type="text"
+                      placeholder="Pedido"
+                      value={filtros.pedido}
+                      onChange={e => setFiltros(f => ({ ...f, pedido: e.target.value }))}
+                      style={{ minWidth: 120, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="CRMID"
+                      value={filtros.crmid}
+                      onChange={e => setFiltros(f => ({ ...f, crmid: e.target.value }))}
+                      style={{ minWidth: 120, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Tracking Number"
+                      value={filtros.trackingNumber}
+                      onChange={e => setFiltros(f => ({ ...f, trackingNumber: e.target.value }))}
+                      style={{ minWidth: 150, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
+                    />
+                    <Button variant="secondary" onClick={handleFiltrarEnvios} style={{ height: 44 }}>
+                      Aplicar filtros
+                    </Button>
+                    <Button variant="danger" onClick={handleBorrarFiltros} style={{ height: 44 }} disabled={!hayFiltrosAplicados}>
+                      Borrar filtros
+                    </Button>
+                  </Flex>
+                </Box>
                 <MultiSelect
-                  label="Seleccionar envíos"
+                  label={`Seleccionar envíos (${enviosFiltrados.length} encontrados)`}
                   placeholder={loadingEnvios ? "Cargando envíos..." : "Seleccione envíos"}
                   value={selectedEnvios}
-                  onChange={setSelectedEnvios}
+                  onChange={values => {
+                    // Si el usuario selecciona la opción especial 'ALL', selecciona o deselecciona todos
+                    if (values.includes('ALL')) {
+                      if (selectedEnvios.length === enviosFiltrados.length) {
+                        setSelectedEnvios([]);
+                      } else {
+                        setSelectedEnvios(enviosFiltrados.map(e => e.id.toString()));
+                      }
+                    } else {
+                      setSelectedEnvios(values);
+                    }
+                  }}
                   disabled={loadingEnvios}
                 >
-                  {envios.map(envio => (
+                  {/* Opción para seleccionar todos */}
+                  {enviosFiltrados.length > 0 && (
+                    <MultiSelectOption value="ALL">
+                      {selectedEnvios.length === enviosFiltrados.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                    </MultiSelectOption>
+                  )}
+                  {enviosFiltrados.map(envio => (
                     <MultiSelectOption key={envio.id} value={envio.id.toString()}>
-                      {envio.IdEnvio || envio.id} - Estado: {envio.Estado.EstadoEnvio || ''}
+                      {envio.IdEnvio || envio.id} - Estado: {envio.Estado?.EstadoEnvio || ''} - Tracking Number: {envio.tracking_number?.TrackingNumber || ''}
                     </MultiSelectOption>
                   ))}
                 </MultiSelect>
